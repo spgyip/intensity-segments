@@ -24,11 +24,11 @@ func TestIntensitySegmentsSplit(t *testing.T) {
 		expected  string
 	}{
 		{0, 50, 200, 1, 2, "[(50,1)(200,0)]"},
-		{0, 50, 200, 1, 0, "[(50,1)(200,0)]"},                              // tc.from==from and tc.end==end, no split
-		{0, 20, 210, 1, 0, "[(50,1)(200,0)]"},                              // tc.from<from and tc.end>end, no split
-		{1, 50, 100, 2, 1, "[(50,2)(100,1)(200,0)]"},                       // tc.from==from
-		{2, 120, 200, 3, 1, "[(50,2)(100,1)(120,3)(200,0)]"},               // tc.end==end
-		{3, 130, 150, 4, 2, "[(50,2)(100,1)(120,3)(130,4)(150,3)(200,0)]"}, // tc.from>from && tc.end<end
+		{1, 50, 200, 2, 0, "[(50,2)(200,0)]"},                              // tc.from==from and tc.end==end, no split, set new intensity
+		{1, 20, 210, 3, 0, "[(50,2)(200,0)]"},                              // tc.from<from and tc.end>end, no split
+		{1, 50, 100, 3, 1, "[(50,3)(100,2)(200,0)]"},                       // tc.from==from
+		{2, 120, 200, 4, 1, "[(50,3)(100,2)(120,4)(200,0)]"},               // tc.end==end
+		{3, 130, 150, 5, 2, "[(50,3)(100,2)(120,4)(130,5)(150,4)(200,0)]"}, // tc.from>from && tc.end<end
 	} {
 		gotN := s.split(tc.index, tc.from, tc.end, tc.intensity)
 		got := s.String()

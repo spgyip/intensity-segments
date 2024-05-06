@@ -14,43 +14,6 @@ func NewIntensitySegments() *IntensitySegments {
 	return s
 }
 
-// Split interval at the i(th) segment, with range `[from, end)`.
-// `[from, end)` must be included by `[segs[i].from, segs[i].end)`.
-// Return the number of newly splitted segments.
-func (s *IntensitySegments) split(i int, from int, end int, intensity int) int {
-	seg := s.segs[i]
-	if !(from >= seg.From() && end <= seg.End()) {
-		// Don't need to split
-		return 0
-	}
-
-	// Make a copy segment
-	cpySeg := *seg
-
-	var count = 0
-	if from > seg.From() {
-		seg.SetEnd(from)
-		s.insertAfter(
-			i,
-			NewSegment(from, end, intensity),
-		)
-		i++
-		count++
-	} else { // from==seg.From()
-		seg.SetIntensity(intensity)
-		seg.SetEnd(end)
-	}
-
-	if end < cpySeg.End() {
-		s.insertAfter(
-			i,
-			NewSegment(end, cpySeg.End(), cpySeg.Intensity()),
-		)
-		count++
-	}
-	return count
-}
-
 // Add intensity for interval `[from, end)`.
 func (s *IntensitySegments) Add(from int, end int, intensity int) {
 	curSegIdx := 0
@@ -185,6 +148,44 @@ func (s *IntensitySegments) Set(from int, end int, intensity int) {
 		)
 	}
 	s.strip()
+}
+
+// Split interval at the i(th) segment, with range `[from, end)`.
+// `[from, end)` must be included by `[segs[i].from, segs[i].end)`.
+// If `[from, end)` equals to `[segs[i].from, segs[i].end)`, set new intensity for `segs[i]`.
+// Return the number of newly splitted segments.
+func (s *IntensitySegments) split(i int, from int, end int, intensity int) int {
+	seg := s.segs[i]
+	if !(from >= seg.From() && end <= seg.End()) {
+		// Must be included or don't need to split
+		return 0
+	}
+
+	// Make a copy segment
+	cpySeg := *seg
+
+	var count = 0
+	if from > seg.From() {
+		seg.SetEnd(from)
+		s.insertAfter(
+			i,
+			NewSegment(from, end, intensity),
+		)
+		i++
+		count++
+	} else { // from==seg.From()
+		seg.SetIntensity(intensity)
+		seg.SetEnd(end)
+	}
+
+	if end < cpySeg.End() {
+		s.insertAfter(
+			i,
+			NewSegment(end, cpySeg.End(), cpySeg.Intensity()),
+		)
+		count++
+	}
+	return count
 }
 
 // Strip segments with extra 0 intensity in head or tail.
