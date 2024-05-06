@@ -1,12 +1,5 @@
 package main
 
-func min(x int, y int) int {
-	if x < y {
-		return x
-	}
-	return y
-}
-
 // Segments holds array of segments representing multiple adjacent intervals.
 // `segs` are always sorted as ascent.
 type IntensitySegments struct {
@@ -32,6 +25,7 @@ func (s *IntensitySegments) Add(from int, end int, intensity int) {
 		idx++
 	}
 
+	// Iterate from `from` until `end`, split segments orderly.
 	for from < end {
 		seg := s.segs[idx]
 		splitEnd := min(end, seg.End())
@@ -46,55 +40,50 @@ func (s *IntensitySegments) Add(from int, end int, intensity int) {
 
 // Set intensity for interval `[from, end)`.
 func (s *IntensitySegments) Set(from int, end int, intensity int) {
-	// Shrink the first segment by `from`
-	firstSegIdx := 0
+	// Iterate until the first segment's interval includes `from`
+	idx := 0
 	for {
-		if from >= s.segs[firstSegIdx].End() {
-			firstSegIdx++
-			continue
+		if from < s.segs[idx].End() {
+			break
 		}
-		break
+		idx++
 	}
-	if from > s.segs[firstSegIdx].From() {
-		s.segs[firstSegIdx].SetEnd(from)
-	} else {
-		firstSegIdx--
+
+	// Split first segment
+	splitEnd := min(end, s.segs[idx].End())
+	n := s.split(idx, from, splitEnd, intensity)
+	idx += n
+
+	// The new segment has beed splitted
+	if s.segs[idx].From() >= end {
+		return
 	}
 
 	// Remove segments included by `[from, end)`
-	curSegIdx := firstSegIdx + 1
 	for {
-		if end < s.segs[curSegIdx].End() {
+		if end < s.segs[idx].End() {
 			break
 		}
-		s.remove(curSegIdx)
-	}
-	// Shrink the last segment by `end`, or insert a new segment
-	if end > s.segs[curSegIdx].From() {
-		s.segs[curSegIdx].SetFrom(end)
+		s.remove(idx)
 	}
 
-	// Keep for later use
-	savedIntensity := s.segs[curSegIdx-1].Intensity()
+	// Set last segment's from to `end`
+	s.segs[idx].SetFrom(end)
 
-	// Insert a new segment with interval '[from, to)' after `firstSegIdx`
+	// Insert a new segment with interval '[from, to)'
 	s.insertAfter(
-		firstSegIdx,
+		idx-1,
 		NewSegment(from, end, intensity),
 	)
-	curSegIdx++ // Move advance because a new segment is inserted before current
-	if end < s.segs[curSegIdx].From() {
-		s.insertAfter(
-			firstSegIdx+1,
-			NewSegment(end, s.segs[curSegIdx].From(), savedIntensity),
-		)
-	}
+	//idx++ // Move advance
+
+	// Strip
 	s.strip()
 }
 
 // Split interval at the i(th) segment, with range `[from, end)`.
 // `[from, end)` must be included by `[segs[i].from, segs[i].end)`.
-// If `[from, end)` equals to `[segs[i].from, segs[i].end)`, set new intensity for `segs[i]`.
+// If `[from, end)` equals to `[segs[i].from, segs[i].end)`, no split will do but new intensity is set for `segs[i]`.
 // Return the number of newly splitted segments.
 func (s *IntensitySegments) split(i int, from int, end int, intensity int) int {
 	seg := s.segs[i]
@@ -103,7 +92,7 @@ func (s *IntensitySegments) split(i int, from int, end int, intensity int) int {
 		return 0
 	}
 
-	// Make a copy segment
+	// Make a copy of current segment,
 	cpySeg := *seg
 
 	var count = 0
@@ -146,7 +135,7 @@ func (s *IntensitySegments) strip() {
 
 	// Strip tail
 	// Iterate from tail until the first segment with no-zero intensity.
-	// Attention: The last segment should always be 0 intensity.
+	// Causion: The last segment is always 0 intensity, the iteration must be from second-last segment.
 	for i = len(s.segs) - 3; i >= 1; i-- {
 		if s.segs[i].Intensity() != 0 {
 			break

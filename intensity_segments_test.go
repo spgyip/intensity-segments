@@ -64,16 +64,18 @@ func TestIntensitySegmentsAdd(t *testing.T) {
 
 func TestIntensitySegmentsSet(t *testing.T) {
 	s := NewIntensitySegments()
-	s.Add(10, 30, 1)
-	s.Add(20, 40, 1)
+	s.Add(100, 300, 1)
 	for i, tc := range []struct {
 		from      int
 		end       int
 		intensity int
 		expected  string
 	}{
-		{15, 25, 3, "[(10,1)(15,3)(25,2)(30,1)(40,0)]"},
-		{15, 35, 3, "[(10,1)(15,3)(35,1)(40,0)]"},
+		{100, 300, 2, "[(100,2)(300,0)]"},               // tc.from==from and tc.end==end, in one segment, no split, set new intensity
+		{100, 200, 3, "[(100,3)(200,2)(300,0)]"},        // tc.from==from, range in one segment
+		{150, 200, 4, "[(100,3)(150,4)(200,2)(300,0)]"}, // tc.end==end, range in one segment
+		{150, 200, 4, "[(100,3)(150,4)(200,2)(300,0)]"}, // Repeatly set, unchanged
+		{120, 250, 5, "[(100,3)(120,5)(250,2)(300,0)]"}, // Range in multiple segments
 	} {
 		s.Set(tc.from, tc.end, tc.intensity)
 		got := s.String()
