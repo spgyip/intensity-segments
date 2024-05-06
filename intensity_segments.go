@@ -1,5 +1,12 @@
 package main
 
+func min(x int, y int) int {
+	if x < y {
+		return x
+	}
+	return y
+}
+
 // Segments holds array of segments representing multiple adjacent intervals.
 // `segs` are always sorted as ascent.
 type IntensitySegments struct {
@@ -16,93 +23,28 @@ func NewIntensitySegments() *IntensitySegments {
 
 // Add intensity for interval `[from, end)`.
 func (s *IntensitySegments) Add(from int, end int, intensity int) {
-	curSegIdx := 0
+	// Iterate until the first segment's interval includes `from`
+	idx := 0
+	for {
+		if from < s.segs[idx].End() {
+			break
+		}
+		idx++
+	}
+
 	for from < end {
-		// Iterate until the first segment's interval includes `from`
-		curSeg := s.segs[curSegIdx]
-		if from >= curSeg.End() {
-			curSegIdx++
-			continue
-		}
+		seg := s.segs[idx]
+		splitEnd := min(end, seg.End())
+		n := s.split(idx, from, splitEnd, seg.Intensity()+intensity)
 
-		if from == curSeg.From() {
-			if end >= curSeg.End() {
-				// ------------------------  <------- Current segment
-				//
-				// |______________________|
-				// from                   end
-				//
-				curSeg.AddIntensity(intensity)
-				curSegIdx++
-				from = curSeg.End()
-			} else {
-				// ------                     <------- Current segment
-				//       -----------------    <------- New split segment
-				// |______________________|
-				// from                   end
-				//
-				s.insertAfter(
-					curSegIdx,
-					NewSegment(end, curSeg.End(), curSeg.Intensity()),
-				)
-				curSeg.SetEnd(end)
-				curSeg.AddIntensity(intensity)
-				curSegIdx++
-				from = end // This will break the loop
-			}
-			continue
-		}
-
-		// Must be `from > curSeg.From()` now.
-		// Shrink current segment's interval to `[curSeg.From(), from)`.
-		// `oldCurEnd` is keeped for future used.
-		oldCurEnd := curSeg.End()
-		curSeg.SetEnd(from)
-
-		//         ----------------  <------- New split segment
-		// --------                  <------- Current segment
-		// |______________________|
-		// from                   end
-		//
-		if end >= oldCurEnd {
-			s.insertAfter(
-				curSegIdx,
-				NewSegment(from, oldCurEnd, curSeg.Intensity()+intensity),
-			)
-			curSegIdx += 2
-			from = oldCurEnd
-			continue
-		}
-
-		// Must be `end < oldCurEnd`.
-		// Split the interval in inter-segment.
-		//
-		//         ---------         <------- New split segment
-		// --------         ------   <------- Current segment/New split segment
-		// |______________________|
-		// from                   end
-		//
-		// Break the loop here
-		s.insertAfter(
-			curSegIdx,
-			NewSegment(from, end, curSeg.Intensity()+intensity),
-		)
-		s.insertAfter(
-			curSegIdx+1,
-			NewSegment(end, oldCurEnd, curSeg.Intensity()),
-		)
-		curSegIdx += 3
-		from = end // This will break the loop
+		// Next
+		idx += (n + 1)
+		from = splitEnd
 	}
 	s.strip()
 }
 
 // Set intensity for interval `[from, end)`.
-//
-//	---------------         <------- New split segment
-//
-// --------               ------   <------- Current segment
-// |__________|_______|_________|
 func (s *IntensitySegments) Set(from int, end int, intensity int) {
 	// Shrink the first segment by `from`
 	firstSegIdx := 0
