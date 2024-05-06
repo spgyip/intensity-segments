@@ -180,7 +180,7 @@ func (s *IntensitySegments) strip() {
 	}
 }
 
-// Insert new segment after idx, at idx+1
+// Insert new segment after idx, at idx+1.
 func (s *IntensitySegments) insertAfter(idx int, seg *Segment) {
 	s.segs = append(s.segs, nil) // Append a nil segment
 	for i := len(s.segs) - 1; i > idx+1; i-- {
@@ -189,7 +189,7 @@ func (s *IntensitySegments) insertAfter(idx int, seg *Segment) {
 	s.segs[idx+1] = seg
 }
 
-// Remove segment at index idx
+// Remove segment at index idx.
 func (s *IntensitySegments) remove(idx int) {
 	for i := idx; i < len(s.segs)-1; i++ {
 		s.segs[i] = s.segs[i+1]
@@ -197,11 +197,23 @@ func (s *IntensitySegments) remove(idx int) {
 	s.segs = s.segs[:len(s.segs)-1]
 }
 
-// Return printable string
+// Return printable string.
 func (s *IntensitySegments) String() string {
+	return s.stringWithOpts(false)
+}
+
+// Return printable string.
+// If `withInf` is true, the MinInf/MaxInf info will not be hidden.
+func (s *IntensitySegments) stringWithOpts(withInf bool) string {
+	i, j := 0, len(s.segs)-1
+	if !withInf {
+		i++
+		j--
+	}
+
 	ss := "["
-	for _, seg := range s.segs {
-		ss += seg.String()
+	for ; i <= j; i++ {
+		ss += s.segs[i].String()
 	}
 	ss += "]"
 	return ss
