@@ -98,11 +98,11 @@ func (s *IntensitySegments) Add(from int, end int, intensity int) {
 }
 
 // Set intensity for interval `[from, end)`.
-//         ---------------         <------- New split segment
+//
+//	---------------         <------- New split segment
+//
 // --------               ------   <------- Current segment
 // |__________|_______|_________|
-//
-// TODO fix: Combine adjacent segments with same intensity
 func (s *IntensitySegments) Set(from int, end int, intensity int) {
 	// Shrink the first segment by `from`
 	firstSegIdx := 0

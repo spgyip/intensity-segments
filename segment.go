@@ -56,7 +56,7 @@ func (seg *Segment) String() string {
 // If `withEnd` is true, the end will be printed.
 func (seg *Segment) stringWithOpt(withEnd bool) string {
 	if withEnd {
-		return fmt.Sprintf("(%d, %d, %d)", seg[0], seg[1], seg[2])
+		return fmt.Sprintf("(%d,%d,%d)", seg[0], seg[1], seg[2])
 	}
-	return fmt.Sprintf("(%d, %d)", seg[0], seg[2])
+	return fmt.Sprintf("(%d,%d)", seg[0], seg[2])
 }
