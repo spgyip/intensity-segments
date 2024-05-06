@@ -27,6 +27,11 @@ func (seg *Segment) From() int {
 	return seg[0]
 }
 
+// Set the left closed interval `from`.
+func (seg *Segment) SetFrom(from int) {
+	seg[0] = from
+}
+
 // Get the right opened interval `end`.
 func (seg *Segment) End() int {
 	return seg[1]
@@ -127,7 +132,7 @@ func (s *IntensitySegments) Add(from int, end int, intensity int) {
 		}
 
 		// Must be `end < oldCurEnd`.
-		// Split the interval in inter-segment
+		// Split the interval in inter-segment.
 		//
 		//         ---------         <------- New split segment
 		// --------         ------   <------- Current segment/New split segment
@@ -145,6 +150,59 @@ func (s *IntensitySegments) Add(from int, end int, intensity int) {
 		)
 		curSegIdx += 3
 		from = end // This will break the loop
+	}
+	s.strip()
+}
+
+// Set intensity for interval `[from, end)`.
+//         ---------------         <------- New split segment
+// --------               ------   <------- Current segment
+// |__________|_______|_________|
+//
+// TODO fix: Combine adjacent segments with same intensity
+func (s *IntensitySegments) Set(from int, end int, intensity int) {
+	// Shrink the first segment by `from`
+	firstSegIdx := 0
+	for {
+		if from >= s.segs[firstSegIdx].End() {
+			firstSegIdx++
+			continue
+		}
+		break
+	}
+	if from > s.segs[firstSegIdx].From() {
+		s.segs[firstSegIdx].SetEnd(from)
+	} else {
+		firstSegIdx--
+	}
+
+	// Remove segments included by `[from, end)`
+	curSegIdx := firstSegIdx + 1
+	for {
+		if end < s.segs[curSegIdx].End() {
+			break
+		}
+		s.remove(curSegIdx)
+	}
+	// Shrink the last segment by `end`, or insert a new segment
+	if end > s.segs[curSegIdx].From() {
+		s.segs[curSegIdx].SetFrom(end)
+	}
+
+	// Keep for later use
+	savedIntensity := s.segs[curSegIdx-1].Intensity()
+
+	// Insert a new segment with interval '[from, to)' after `firstSegIdx`
+	s.insertAfter(
+		firstSegIdx,
+		NewSegment(from, end, intensity),
+	)
+	curSegIdx++ // Move advance because a new segment is inserted before current
+	if end < s.segs[curSegIdx].From() {
+		s.insertAfter(
+			firstSegIdx+1,
+			NewSegment(end, s.segs[curSegIdx].From(), savedIntensity),
+		)
 	}
 	s.strip()
 }
@@ -196,11 +254,6 @@ func (s *IntensitySegments) remove(idx int) {
 	s.segs = s.segs[:len(s.segs)-1]
 }
 
-// Set intensity for interval `[from, end)`.
-func (s *IntensitySegments) Set(from int, end int, intensity int) {
-
-}
-
 // Return printable string
 func (s *IntensitySegments) String() string {
 	ss := "["
@@ -211,7 +264,7 @@ func (s *IntensitySegments) String() string {
 	return ss
 }
 
-func main() {
+func TestAdd() {
 	s := NewIntensitySegments()
 	fmt.Println(s)
 	s.Add(10, 30, 1)
@@ -224,5 +277,22 @@ func main() {
 	fmt.Println(s)*/
 	s.Add(10, 40, -2)
 	fmt.Println(s)
+}
 
+func TestSet() {
+	s := NewIntensitySegments()
+	fmt.Println(s)
+	s.Add(10, 30, 1)
+	fmt.Println(s)
+	s.Add(20, 40, 1)
+	fmt.Println(s)
+
+	//s.Set(15, 25, 2)
+	s.Set(15, 35, 3)
+	fmt.Println(s)
+}
+
+func main() {
+	//TestAdd()
+	TestSet()
 }
