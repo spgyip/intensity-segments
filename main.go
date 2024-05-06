@@ -2,7 +2,7 @@ package main
 
 import "fmt"
 
-func TestAdd() {
+func DebugAdd() {
 	s := NewIntensitySegments()
 	fmt.Println(s)
 	s.Add(10, 30, 1)
@@ -17,7 +17,7 @@ func TestAdd() {
 	fmt.Println(s)
 }
 
-func TestSet() {
+func DebugSet() {
 	s := NewIntensitySegments()
 	fmt.Println(s)
 	s.Add(10, 30, 1)
@@ -31,6 +31,6 @@ func TestSet() {
 }
 
 func main() {
-	//TestAdd()
-	TestSet()
+	//DebugAdd()
+	DebugSet()
 }

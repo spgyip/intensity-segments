@@ -42,6 +42,11 @@ func (seg *Segment) Intensity() int {
 	return seg[2]
 }
 
+// Set the intensity.
+func (seg *Segment) SetIntensity(val int) {
+	seg[2] = val
+}
+
 // Add the intensity.
 func (seg *Segment) AddIntensity(delta int) {
 	seg[2] += delta
@@ -53,9 +58,9 @@ func (seg *Segment) String() string {
 }
 
 // Return printable string.
-// If `withEnd` is true, the end will be printed.
-func (seg *Segment) stringWithOpt(withEnd bool) string {
-	if withEnd {
+// If `verbose` is true, verbose details will be printed out.
+func (seg *Segment) stringWithOpt(verbose bool) string {
+	if verbose {
 		return fmt.Sprintf("(%d,%d,%d)", seg[0], seg[1], seg[2])
 	}
 	return fmt.Sprintf("(%d,%d)", seg[0], seg[2])
