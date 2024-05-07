@@ -1,9 +1,15 @@
 
-
 ## TODO
 
-- Compact adjacent intervals with same intensity, and test cases.
-- More test cases.
+- [X] Compact adjacent intervals with same intensity.
+- More test cases for invalid range input.
+- Implement `Get` method querying intensity of a specified input.
+
+## Build
+
+```shell
+go build .
+```
 
 ## Test coverage
 
@@ -18,6 +24,6 @@
 === RUN   TestIntensitySegmentsSet
 --- PASS: TestIntensitySegmentsSet (0.00s)
 PASS
-coverage: 77.6% of statements
-ok      test.com/intensity      0.314s
+        test.com/intensity      coverage: 76.9% of statements
+ok      test.com/intensity      0.564s  coverage: 76.9% of statements
 ```

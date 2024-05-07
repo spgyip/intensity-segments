@@ -25,7 +25,7 @@ func TestIntensitySegmentsSplit(t *testing.T) {
 	}{
 		{0, 50, 200, 1, 2, "[(50,1)(200,0)]"},
 		{1, 50, 200, 2, 0, "[(50,2)(200,0)]"},                              // tc.from==from and tc.end==end, no split, set new intensity
-		{1, 20, 210, 3, 0, "[(50,2)(200,0)]"},                              // tc.from<from and tc.end>end, no split
+		{1, 20, 210, 3, 0, "[(50,2)(200,0)]"},                              // tc.from<from and tc.end>end, invalid range, do nothing
 		{1, 50, 100, 3, 1, "[(50,3)(100,2)(200,0)]"},                       // tc.from==from
 		{2, 120, 200, 4, 1, "[(50,3)(100,2)(120,4)(200,0)]"},               // tc.end==end
 		{3, 130, 150, 5, 2, "[(50,3)(100,2)(120,4)(130,5)(150,4)(200,0)]"}, // tc.from>from && tc.end<end
