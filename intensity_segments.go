@@ -25,30 +25,17 @@ func NewIntensitySegments() *IntensitySegments {
 
 // Add intensity for interval `[from, end)`.
 func (s *IntensitySegments) Add(from int, end int, intensity int) {
-	// Iterate until the first segment's interval includes `from`
-	idx := 0
-	for {
-		if from < s.segs[idx].End() {
-			break
-		}
-		idx++
-	}
-
-	// Iterate from `from` until `end`, split segments orderly.
-	for from < end {
-		seg := s.segs[idx]
-		splitEnd := min(end, seg.End())
-		n := s.split(idx, from, splitEnd, seg.Intensity()+intensity)
-
-		// Next
-		idx += (n + 1)
-		from = splitEnd
-	}
-	s.compact()
+	s.splitInterval(from, end, intensity, true)
 }
 
 // Set intensity for interval `[from, end)`.
 func (s *IntensitySegments) Set(from int, end int, intensity int) {
+	s.splitInterval(from, end, intensity, false)
+}
+
+// Split segment for interval `[from, end)`, iterate from `from` until `end` and split on each segment.
+// If `deltaIntensity` is true, the `intensity` is a delta intensity, which means the new intensity should be computed by segment intensity.
+func (s *IntensitySegments) splitInterval(from int, end int, intensity int, deltaIntensity bool) {
 	// Iterate until the first segment's interval includes `from`
 	idx := 0
 	for {
@@ -62,7 +49,11 @@ func (s *IntensitySegments) Set(from int, end int, intensity int) {
 	for from < end {
 		seg := s.segs[idx]
 		splitEnd := min(end, seg.End())
-		n := s.split(idx, from, splitEnd, intensity)
+		setIntensity := intensity
+		if deltaIntensity {
+			setIntensity += seg.Intensity()
+		}
+		n := s.split(idx, from, splitEnd, setIntensity)
 
 		// Next
 		idx += (n + 1)
@@ -71,7 +62,8 @@ func (s *IntensitySegments) Set(from int, end int, intensity int) {
 	s.compact()
 }
 
-// Split interval at the i(th) segment, with range `[from, end)` which must be include by `[segs[i].from, segs[i].end)`.
+// Split interval at the i(th) segment, with range `[from, end)`.
+// `[from, end] ` must be included by `[segs[i].from, segs[i].end)`.
 // If split with the same range, set the new intensity.
 // Return the number of newly splitted segments.
 //
