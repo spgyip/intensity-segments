@@ -1,12 +1,21 @@
 package main
 
-// Segments holds array of segments representing multiple adjacent intervals.
-// `segs` are always sorted as ascent.
+// Segments holds array of segments. Each segment represent an interval `[from,end)`.
+// Segments are always sorted as ascent, with adjacent intervals.
 type IntensitySegments struct {
 	segs []*Segment
 }
 
-// NewIntensitySegments creates a new `IntensitySegments` with initiated interval `[MinInf, MaxInf)`.
+// NewIntensitySegments creates a new `IntensitySegments`.
+// The infinity interval `[MinInf, MaxInf)` is added by default, so there are 2 segments '(MinInf,0)(MaxInf,0)'.
+//
+// Usage:
+//  s := NewIntensitySegments()
+//	s.Add(10, 30, 1)   ==> '[(10,1)(30,0)]'
+//	s.Add(20, 40, 1)   ==> '[(10,1)(20,2)(30,1)(40,0)]'
+//	s.Add(10, 40, -1)  ==> '[(20,1)(30,0)]'
+//	s.Add(10, 40, -1)  ==> '[(10,-1)(20,0)(30,-1)(40,0)]'
+//
 func NewIntensitySegments() *IntensitySegments {
 	s := &IntensitySegments{}
 	s.segs = append(s.segs, NewSegment(MinInf, MaxInf, 0))
@@ -35,7 +44,7 @@ func (s *IntensitySegments) Add(from int, end int, intensity int) {
 		idx += (n + 1)
 		from = splitEnd
 	}
-	s.strip()
+	s.compact()
 }
 
 // Set intensity for interval `[from, end)`.
@@ -49,42 +58,84 @@ func (s *IntensitySegments) Set(from int, end int, intensity int) {
 		idx++
 	}
 
-	// Split first segment
-	splitEnd := min(end, s.segs[idx].End())
-	n := s.split(idx, from, splitEnd, intensity)
-	idx += n
+	// Iterate from `from` until `end`, split segments orderly.
+	for from < end {
+		seg := s.segs[idx]
+		splitEnd := min(end, seg.End())
+		n := s.split(idx, from, splitEnd, intensity)
 
-	// The new segment has beed splitted
-	if s.segs[idx].From() >= end {
-		return
+		// Next
+		idx += (n + 1)
+		from = splitEnd
 	}
-
-	// Remove segments included by `[from, end)`
-	for {
-		if end < s.segs[idx].End() {
-			break
-		}
-		s.remove(idx)
-	}
-
-	// Set last segment's from to `end`
-	s.segs[idx].SetFrom(end)
-
-	// Insert a new segment with interval '[from, to)'
-	s.insertAfter(
-		idx-1,
-		NewSegment(from, end, intensity),
-	)
-	//idx++ // Move advance
-
-	// Strip
-	s.strip()
+	s.compact()
 }
 
-// Split interval at the i(th) segment, with range `[from, end)`.
-// `[from, end)` must be included by `[segs[i].from, segs[i].end)`.
-// If `[from, end)` equals to `[segs[i].from, segs[i].end)`, no split will do but new intensity is set for `segs[i]`.
+// Split interval at the i(th) segment, with range `[from, end)` which must be include by `[segs[i].from, segs[i].end)`.
+// If split with the same range, set the new intensity.
 // Return the number of newly splitted segments.
+//
+// Show cases:
+//         --------             <------ new intensity
+//  --------------------------  <------ origin intensity
+//  |________________________|
+//  x     x1      y1         y
+//
+//  [x, y) = (seg[i].from, seg[i].end)
+//  [x1, y1) = [from, end)
+//
+// Condition 1 - Not included:
+//   Condition: (x1 < x) OR  (y1>y)
+//   Action: Invalid input range, do nothing.
+//   Output: "(x, )(y, )"
+//   Number of new segments: 0
+//
+//  _______|________________|_______
+//  x1     x1               y      y1
+//
+// Case 2 - Equal
+//    Condition: (x1==x) AND (y1==y)
+//    Action: No split, set new intensity
+//    Output: "(x, <new intensity>)(y, )"
+//    Number of new segments: 0
+//  --------------------------  <------ new intensity
+//
+//  |________________________|
+//  x                        y
+//  x1                       y1
+//
+// Condition 3 - Left split
+//    Condition: (x1==x) AND (y1<y)
+//    Action: Split new segment left to i(th)
+//    Output: "(x, <new intensity>)(y1,)(y, )"
+//    Number of new segments: 1
+//  ----------                  <------ new intensity
+//            ----------------  <------ origin intensity
+//  |________________________|
+//  x         y1             y
+//  x1
+//
+// Condition 4 - Right split
+//    Condition: (x1>x) AND (y1==y)
+//    Action: Split new segment right to i(th)
+//    Output: "(x, )(x1,<new intensity>)(y, )"
+//    Number of new segments: 1
+//                  ---------- <------ new intensity
+//  ----------------           <------ origin intensity
+//  |________________________|
+//  x              x1        y
+//                           y1
+//
+// Condition 3 - Inter-split
+//    Condition: (x1>x) AND (y1<y)
+//    Action: Split new segment inter the segment
+//    Output: "(x, )(x1,<new intensity>)(y1,)(y, )"
+//    Number of new segments: 2
+//          ----------         <------ new intensity
+//  --------           ------- <------ origin intensity
+//  |________________________|
+//  x      x1        y1      y
+//
 func (s *IntensitySegments) split(i int, from int, end int, intensity int) int {
 	seg := s.segs[i]
 	if !(from >= seg.From() && end <= seg.End()) {
@@ -119,32 +170,20 @@ func (s *IntensitySegments) split(i int, from int, end int, intensity int) int {
 	return count
 }
 
-// Strip segments with extra 0 intensity in head or tail.
-// Don't iterate the MinInf and MaxInf segment.
-func (s *IntensitySegments) strip() {
-	var i int
-	// Strip head
-	for i = 1; i <= len(s.segs)-2; {
+// Compact adjacent segments with the same intensity.
+// For example '(10,1)(20,1)(30,0)' will be compacted to '(10,1)(30,0)'.
+func (s *IntensitySegments) compact() {
+	// Don't compact the last `(MaxInf, 0)` segment,
+	// so the loop end at `len(s.segs)-2`.
+	for i := 0; i < len(s.segs)-2; {
 		cur := s.segs[i]
-		if cur.Intensity() != 0 {
-			break
+		next := s.segs[i+1]
+		if cur.Intensity() != next.Intensity() {
+			i++
+			continue
 		}
-		s.segs[i-1].SetEnd(cur.End())
-		s.remove(i)
-	}
-
-	// Strip tail
-	// Iterate from tail until the first segment with no-zero intensity.
-	// Causion: The last segment is always 0 intensity, the iteration must be from second-last segment.
-	for i = len(s.segs) - 3; i >= 1; i-- {
-		if s.segs[i].Intensity() != 0 {
-			break
-		}
-	}
-	i++ // Switch to next
-	// Remove the next segment
-	for i <= len(s.segs)-3 {
-		s.segs[i].SetEnd(s.segs[i+1].End())
+		// Compact segments, by removing the next segment
+		cur.SetEnd(next.End())
 		s.remove(i + 1)
 	}
 }

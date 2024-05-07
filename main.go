@@ -9,12 +9,13 @@ func DebugAdd() {
 	fmt.Println(s)
 	s.Add(20, 40, 1)
 	fmt.Println(s)
-	/*s.Add(10, 40, -1)
+	s.Add(10, 40, -1)
 	fmt.Println(s)
 	s.Add(10, 40, -1)
-	fmt.Println(s)*/
-	s.Add(10, 40, -2)
 	fmt.Println(s)
+
+	//s.Add(10, 40, -2)
+	//fmt.Println(s)
 }
 
 func DebugSet() {
@@ -31,6 +32,6 @@ func DebugSet() {
 }
 
 func main() {
-	//DebugAdd()
-	DebugSet()
+	DebugAdd()
+	//DebugSet()
 }
