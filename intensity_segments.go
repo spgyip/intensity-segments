@@ -85,7 +85,7 @@ func (s *IntensitySegments) splitInterval(from int, end int, intensity int, delt
 //  _______|________________|_______
 //  x1     x1               y      y1
 //
-// Case 2 - Equal
+// Condition 2 - Equal
 //    Condition: (x1==x) AND (y1==y)
 //    Action: No split, set new intensity
 //    Output: "(x, <new intensity>)(y, )"
@@ -118,7 +118,7 @@ func (s *IntensitySegments) splitInterval(from int, end int, intensity int, delt
 //  x              x1        y
 //                           y1
 //
-// Condition 3 - Inter-split
+// Condition 5 - Inter-split
 //    Condition: (x1>x) AND (y1<y)
 //    Action: Split new segment inter the segment
 //    Output: "(x, )(x1,<new intensity>)(y1,)(y, )"
