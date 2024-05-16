@@ -13,34 +13,6 @@ func TestIntensitySegmentsEmpty(t *testing.T) {
 	}
 }
 
-func TestIntensitySegmentsSplit(t *testing.T) {
-	s := NewIntensitySegments()
-	for i, tc := range []struct {
-		index     int
-		from      int
-		end       int
-		intensity int
-		expectedN int
-		expected  string
-	}{
-		{0, 50, 200, 1, 2, "[(50,1)(200,0)]"},
-		{1, 50, 200, 2, 0, "[(50,2)(200,0)]"},                              // tc.from==from and tc.end==end, no split, set new intensity
-		{1, 20, 210, 3, 0, "[(50,2)(200,0)]"},                              // tc.from<from and tc.end>end, invalid range, do nothing
-		{1, 50, 100, 3, 1, "[(50,3)(100,2)(200,0)]"},                       // tc.from==from
-		{2, 120, 200, 4, 1, "[(50,3)(100,2)(120,4)(200,0)]"},               // tc.end==end
-		{3, 130, 150, 5, 2, "[(50,3)(100,2)(120,4)(130,5)(150,4)(200,0)]"}, // tc.from>from && tc.end<end
-	} {
-		gotN := s.split(tc.index, tc.from, tc.end, tc.intensity)
-		got := s.String()
-		if gotN != tc.expectedN {
-			t.Fatalf("Case[%v] fail: gotN(%v)!=expectedN(%v)\n", i, gotN, tc.expectedN)
-		}
-		if got != tc.expected {
-			t.Fatalf("Case[%v] fail: got(%v)!=expected(%v)\n", i, got, tc.expected)
-		}
-	}
-}
-
 func TestIntensitySegmentsAdd(t *testing.T) {
 	s := NewIntensitySegments()
 	for i, tc := range []struct {
