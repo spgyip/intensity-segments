@@ -7,15 +7,15 @@ type IntensitySegments struct {
 }
 
 // NewIntensitySegments creates a new `IntensitySegments`.
-// The infinity interval `[MinInf, MaxInf)` is added by default, so there are 2 segments '(MinInf,0)(MaxInf,0)'.
+// The infinity interval `[MinInf, MaxInf)` is added by default, so there are 2 initiated segments '(MinInf,0)(MaxInf,0)'.
 //
 // Usage:
-//  s := NewIntensitySegments()
+//
+//	s := NewIntensitySegments()
 //	s.Add(10, 30, 1)   ==> '[(10,1)(30,0)]'
 //	s.Add(20, 40, 1)   ==> '[(10,1)(20,2)(30,1)(40,0)]'
 //	s.Add(10, 40, -1)  ==> '[(20,1)(30,0)]'
 //	s.Add(10, 40, -1)  ==> '[(10,-1)(20,0)(30,-1)(40,0)]'
-//
 func NewIntensitySegments() *IntensitySegments {
 	s := &IntensitySegments{}
 	s.segs = append(s.segs, NewSegment(MinInf, MaxInf, 0))
@@ -26,11 +26,13 @@ func NewIntensitySegments() *IntensitySegments {
 // Add intensity for interval `[from, end)`.
 func (s *IntensitySegments) Add(from int, end int, intensity int) {
 	s.splitInterval(from, end, intensity, true)
+	s.compact()
 }
 
 // Set intensity for interval `[from, end)`.
 func (s *IntensitySegments) Set(from int, end int, intensity int) {
 	s.splitInterval(from, end, intensity, false)
+	s.compact()
 }
 
 // Split segment for interval `[from, end)`, iterate from `from` until `end` and split on each segment.
@@ -45,7 +47,7 @@ func (s *IntensitySegments) splitInterval(from int, end int, intensity int, delt
 		idx++
 	}
 
-	// Iterate from `from` until `end`, split segments orderly.
+	// Iterate from `from` until `end`, split segments in order.
 	for from < end {
 		seg := s.segs[idx]
 		splitEnd := min(end, seg.End())
@@ -59,7 +61,6 @@ func (s *IntensitySegments) splitInterval(from int, end int, intensity int, delt
 		idx += (n + 1)
 		from = splitEnd
 	}
-	s.compact()
 }
 
 // Split interval at the i(th) segment, with range `[from, end)`.
@@ -68,66 +69,71 @@ func (s *IntensitySegments) splitInterval(from int, end int, intensity int, delt
 // Return the number of newly splitted segments.
 //
 // Show cases:
-//         --------             <------ new intensity
-//  --------------------------  <------ origin intensity
-//  |________________________|
-//  x     x1      y1         y
 //
-//  [x, y) = (seg[i].from, seg[i].end)
-//  [x1, y1) = [from, end)
+//	       --------             <------ new intensity
+//	--------------------------  <------ origin intensity
+//	|________________________|
+//	x     x1      y1         y
+//
+//	[x, y) = (seg[i].from, seg[i].end)
+//	[x1, y1) = [from, end)
 //
 // Condition 1 - Not included:
-//   Condition: (x1 < x) OR  (y1>y)
-//   Action: Invalid input range, do nothing.
-//   Output: "(x, )(y, )"
-//   Number of new segments: 0
 //
-//  _______|________________|_______
-//  x1     x1               y      y1
+//	 Condition: (x1 < x) OR  (y1>y)
+//	 Action: Invalid input range, do nothing.
+//	 Output: "(x, )(y, )"
+//	 Number of new segments: 0
+//
+//	_______|________________|_______
+//	x1     x1               y      y1
 //
 // Condition 2 - Equal
-//    Condition: (x1==x) AND (y1==y)
-//    Action: No split, set new intensity
-//    Output: "(x, <new intensity>)(y, )"
-//    Number of new segments: 0
-//  --------------------------  <------ new intensity
 //
-//  |________________________|
-//  x                        y
-//  x1                       y1
+//	  Condition: (x1==x) AND (y1==y)
+//	  Action: No split, set new intensity
+//	  Output: "(x, <new intensity>)(y, )"
+//	  Number of new segments: 0
+//	--------------------------  <------ new intensity
+//
+//	|________________________|
+//	x                        y
+//	x1                       y1
 //
 // Condition 3 - Left split
-//    Condition: (x1==x) AND (y1<y)
-//    Action: Split new segment left to i(th)
-//    Output: "(x, <new intensity>)(y1,)(y, )"
-//    Number of new segments: 1
-//  ----------                  <------ new intensity
-//            ----------------  <------ origin intensity
-//  |________________________|
-//  x         y1             y
-//  x1
+//
+//	  Condition: (x1==x) AND (y1<y)
+//	  Action: Split new segment left to i(th)
+//	  Output: "(x, <new intensity>)(y1,)(y, )"
+//	  Number of new segments: 1
+//	----------                  <------ new intensity
+//	          ----------------  <------ origin intensity
+//	|________________________|
+//	x         y1             y
+//	x1
 //
 // Condition 4 - Right split
-//    Condition: (x1>x) AND (y1==y)
-//    Action: Split new segment right to i(th)
-//    Output: "(x, )(x1,<new intensity>)(y, )"
-//    Number of new segments: 1
-//                  ---------- <------ new intensity
-//  ----------------           <------ origin intensity
-//  |________________________|
-//  x              x1        y
-//                           y1
+//
+//	  Condition: (x1>x) AND (y1==y)
+//	  Action: Split new segment right to i(th)
+//	  Output: "(x, )(x1,<new intensity>)(y, )"
+//	  Number of new segments: 1
+//	                ---------- <------ new intensity
+//	----------------           <------ origin intensity
+//	|________________________|
+//	x              x1        y
+//	                         y1
 //
 // Condition 5 - Inter-split
-//    Condition: (x1>x) AND (y1<y)
-//    Action: Split new segment inter the segment
-//    Output: "(x, )(x1,<new intensity>)(y1,)(y, )"
-//    Number of new segments: 2
-//          ----------         <------ new intensity
-//  --------           ------- <------ origin intensity
-//  |________________________|
-//  x      x1        y1      y
 //
+//	  Condition: (x1>x) AND (y1<y)
+//	  Action: Split new segment inter the segment
+//	  Output: "(x, )(x1,<new intensity>)(y1,)(y, )"
+//	  Number of new segments: 2
+//	        ----------         <------ new intensity
+//	--------           ------- <------ origin intensity
+//	|________________________|
+//	x      x1        y1      y
 func (s *IntensitySegments) split(i int, from int, end int, intensity int) int {
 	seg := s.segs[i]
 	if !(from >= seg.From() && end <= seg.End()) {
